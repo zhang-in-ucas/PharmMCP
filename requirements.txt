@@ -1,0 +1,6 @@
+mcp==1.25.0
+fastmcp==2.14.0
+httpx==0.28.1
+openai==2.14.0
+python-dotenv==1.1.0
+gradio>=5.0.0
