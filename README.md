@@ -188,6 +188,4 @@ docker run -d -p 8000:8000 -p 7860:7860 --env-file .env pharmmcp
 
 MIT
 
----
 
-> 本内容由 Coze AI 生成，请遵循相关法律法规及《人工智能生成合成内容标识办法》使用与传播。
