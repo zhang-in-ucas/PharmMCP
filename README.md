@@ -1,13 +1,4 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191110102MACQD9K64018705
-    ProduceID: 7638657128173060398-data_volume/files/所有对话/主对话/PharmMCP_README.md
-    ReservedCode1: ""
-    ContentPropagator: 001191110102MACQD9K64028705
-    PropagateID: 2926213286594729#1780326332374
-    ReservedCode2: ""
----
+
 # 🧪 PharmMCP
 
 基于 MCP 协议的药物分子智能查询与筛选 Agent，集成 PubChem、ChEMBL、PubMed 三大数据库，提供从分子搜索、物化性质分析、类药性判断到文献检索的完整链路。
