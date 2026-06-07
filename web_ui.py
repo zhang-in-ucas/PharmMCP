@@ -39,7 +39,6 @@ SYSTEM_PROMPT = (
     "- 用户问类药性 → filter_by_druglikeness（需要CID）\n"
     "- 用户想快速了解全貌 → drug_screen（一步到位）\n\n"
     "- 用户问文献/论文/研究 → search_literature\n\n"
-    "- 用户想对比两个药物 → drug_compare\n\n"
     "注意：如果用户只给了分子名没给CID/SMILES，先用search_molecule获取CID和SMILES，再调用其他工具。"
     "回答内容要专业准确，专业术语需附带通俗解释（例：logP（脂水分配系数）反映分子亲脂性）;数据需标注来源（如PubChem、ChEMBL等）;多工具结果需整合为连贯报告。所有回复均使用中文。"
 )

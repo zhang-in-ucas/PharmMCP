@@ -1,12 +1,11 @@
 """
 API 连通性测试
 
-测试3个外部数据源 + 2个组合功能的连通性：
+测试3个外部数据源 + 1个组合功能的连通性：
 1. PubChem REST API
 2. ChEMBL REST API
 3. PubMed E-utilities API（新增）
 4. drug_screen 流水线（端到端）
-5. drug_compare 对比功能（端到端）
 
 运行方式：python test_api.py
 """
@@ -122,52 +121,6 @@ async def test_pipeline():
         print(f"❌ Pipeline 流水线异常: {e}")
 
 
-async def test_drug_compare():
-    """测试drug_compare对比功能（组合skill）"""
-    from pubchem_client import PubChemClient
-    from druglikeness import check_lipinski
-
-    pubchem = PubChemClient()
-    names = ["aspirin", "ibuprofen"]
-
-    try:
-        results = []
-        for name in names:
-            # 搜索分子
-            search = await pubchem.search_by_name(name)
-            if not search:
-                print(f"❌ drug_compare: 未找到分子 {name}")
-                return
-
-            # 获取物化性质
-            props = await pubchem.get_properties(search["cid"])
-            if not props:
-                print(f"❌ drug_compare: 未获取到 {name} 的性质")
-                return
-
-            # Lipinski判断
-            lipinski = check_lipinski(props)
-
-            results.append({
-                "name": name,
-                "cid": search["cid"],
-                "mw": props.get("molecular_weight"),
-                "xlogp": props.get("xlogp"),
-                "lipinski_pass": lipinski["passes"],
-            })
-
-        # 对比输出
-        r0, r1 = results
-        print(
-            f"✅ drug_compare 对比完成! "
-            f"{r0['name']}(MW={r0['mw']}, LogP={r0['xlogp']}, Lipinski={'通过' if r0['lipinski_pass'] else '不通过'}) "
-            f"vs "
-            f"{r1['name']}(MW={r1['mw']}, LogP={r1['xlogp']}, Lipinski={'通过' if r1['lipinski_pass'] else '不通过'})"
-        )
-    except Exception as e:
-        print(f"❌ drug_compare 对比异常: {e}")
-
-
 # ============================================================
 # 主入口
 # ============================================================
@@ -183,7 +136,6 @@ async def main():
 
     print("\n--- 组合功能端到端测试 ---")
     await test_pipeline()
-    await test_drug_compare()
 
     print("\n" + "=" * 50)
     print("测试完成")

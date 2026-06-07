@@ -1,13 +1,12 @@
 """
 工具函数测试
 
-测试8个MCP工具 + 2个组合功能：
+测试8个MCP工具 + 1个组合功能：
 1. PubChem: search_by_name, search_by_smiles, get_properties, get_similar
 2. ChEMBL: search_molecule, get_activities, get_drug_info
 3. PubMed: search_literature
 4. druglikeness: check_lipinski
 5. Pipeline: drug_screen_pipeline
-6. drug_compare: 对比两个分子
 
 运行方式：python test_tools.py
 """
@@ -101,56 +100,6 @@ async def test_pipeline():
     report = await drug_screen_pipeline("aspirin")
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
-# ========== drug_compare 测试（新增） ==========
-async def test_drug_compare():
-    print("\n--- 测试 drug_compare ---")
-    names = ["aspirin", "ibuprofen"]
-    results = []
-
-    for name in names:
-        # Step 1: 搜索分子
-        search = await pubchem.search_by_name(name)
-        if not search:
-            print(f"未找到分子: {name}")
-            return
-
-        # Step 2: 获取物化性质
-        props = await pubchem.get_properties(search["cid"])
-        if not props:
-            print(f"未获取到 {name} 的性质")
-            return
-
-        # Step 3: Lipinski判断
-        lipinski = check_lipinski(props)
-
-        results.append({
-            "name": name,
-            "cid": search["cid"],
-            "smiles": search.get("smiles"),
-            "molecular_weight": props.get("molecular_weight"),
-            "xlogp": props.get("xlogp"),
-            "hbd": props.get("hbd"),
-            "hba": props.get("hba"),
-            "tpsa": props.get("tpsa"),
-            "lipinski_pass": lipinski["passes"],
-            "lipinski_violations": lipinski["violation_count"],
-        })
-
-    # 对比输出
-    print("=" * 60)
-    print(f"{'属性':<20} {'Aspirin':<20} {'Ibuprofen':<20}")
-    print("-" * 60)
-    for key in ["molecular_weight", "xlogp", "hbd", "hba", "tpsa"]:
-        v0 = results[0].get(key, "N/A")
-        v1 = results[1].get(key, "N/A")
-        print(f"{key:<20} {str(v0):<20} {str(v1):<20}")
-    print("-" * 60)
-    p0 = "通过" if results[0]["lipinski_pass"] else "不通过"
-    p1 = "通过" if results[1]["lipinski_pass"] else "不通过"
-    print(f"{'Lipinski':<20} {p0:<20} {p1:<20}")
-    print(f"{'违反条数':<20} {results[0]['lipinski_violations']:<20} {results[1]['lipinski_violations']:<20}")
-    print("=" * 60)
-
 # ========== 主函数 ==========
 async def main():
     # PubChem
@@ -174,9 +123,6 @@ async def main():
 
     # Pipeline
     await test_pipeline()
-
-    # drug_compare（新增）
-    await test_drug_compare()
 
 if __name__ == "__main__":
     asyncio.run(main())

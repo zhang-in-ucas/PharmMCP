@@ -1,7 +1,7 @@
 """
 PharmMCP - 基于MCP协议的药物分子智能查询与筛选Agent
 
-提供9个MCP工具，覆盖从分子搜索到药物筛选的完整链路：
+提供8个MCP工具，覆盖从分子搜索到药物筛选的完整链路：
 
 基础工具（7个）：
 1. search_molecule - 分子搜索（PubChem）
@@ -12,9 +12,8 @@ PharmMCP - 基于MCP协议的药物分子智能查询与筛选Agent
 6. filter_by_druglikeness - Lipinski五规则过滤（本地计算）
 7. search_literature - 文献检索（PubMed）
 
-高级工具（2个）：
+高级工具（1个）：
 8. drug_screen - 多工具串联生成分子简报（Pipeline）
-9. drug_compare - 药物对比分析（Skill）
 
 运行方式：python server.py（stdio模式） / python server.py --http（HTTP模式）
 """
@@ -49,7 +48,7 @@ async def search_molecule(name: str) -> Optional[dict]:
     返回结果包含CID，可用于后续查询物化性质等。
 
     Args:
-        name: 分子英文名（如aspirin）或SMILES字符串
+        name: 分子名（如aspirin）或SMILES字符串
     """
     # 简单判断：如果包含常见SMILES字符，按SMILES搜索
     if any(c in name for c in "=#[]()") and len(name) > 5:
@@ -191,7 +190,7 @@ async def drug_screen(molecule_name: str) -> dict:
     适合快速了解一个分子的全貌。
 
     Args:
-        molecule_name: 分子英文名，如aspirin
+        molecule_name: 分子英文名或中文名，如aspirin
     """
     return await drug_screen_pipeline(molecule_name)
 
@@ -212,53 +211,6 @@ async def search_literature(query: str, max_results: int = 5) -> Optional[list]:
     """
     return await pubmed.search_literature(query, max_results=max_results)
 
-# ============================================================
-# Skill: 药物对比分析
-# ============================================================
-@mcp.tool()
-async def drug_compare(molecule_a: str, molecule_b: str) -> dict:
-    """药物对比分析：比较两个分子的物化性质和类药性。
-    自动调用search_molecule→get_molecule_properties→filter_by_druglikeness，
-    一次完成两个分子的横向对比，无需逐个查询。
-    适用于候选药物筛选、同类药物对比、先导化合物优化。
-    Args:
-        molecule_a: 第一个分子英文名，如 aspirin
-        molecule_b: 第二个分子英文名，如 ibuprofen
-    """
-    # 直接调底层客户端，绕过MCP装饰器
-    search_a = await pubchem.search_by_name(molecule_a)
-    search_b = await pubchem.search_by_name(molecule_b)
-
-    if not search_a:
-        return {"error": f"未找到分子: {molecule_a}"}
-    if not search_b:
-        return {"error": f"未找到分子: {molecule_b}"}
-
-    cid_a = search_a.get("cid")
-    cid_b = search_b.get("cid")
-
-    if not cid_a or not cid_b:
-        return {"error": "分子CID解析失败"}
-
-    prop_a = await pubchem.get_properties(cid_a)
-    prop_b = await pubchem.get_properties(cid_b)
-    drug_a = check_lipinski(prop_a) if prop_a else None
-    drug_b = check_lipinski(prop_b) if prop_b else None
-
-    return {
-        "molecule_a": {
-            "name": molecule_a,
-            "cid": cid_a,
-            "properties": prop_a,
-            "druglikeness": drug_a,
-        },
-        "molecule_b": {
-            "name": molecule_b,
-            "cid": cid_b,
-            "properties": prop_b,
-            "druglikeness": drug_b,
-        },
-    }
 # ============================================================
 # 启动Server（stdio模式）
 # ============================================================
