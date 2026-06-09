@@ -19,7 +19,7 @@ This is not a "wrapper around a few APIs." It's a **production-style demonstrati
 - ✅ **8 standardized MCP tools** covering the full drug discovery chain
 - ✅ **2-layer tool architecture** (Tool → Pipeline) — the same pattern teams use to scale agent capabilities
 - ✅ **Dual transport modes** (stdio for local dev, streamable-http for remote deployment) with transport/business layer decoupling
-- ✅ **Async high-concurrency design** — httpx.AsyncClient for parallel multi-API calls with timeout management
+- ✅ **Async concurrent architecture** — `asyncio.gather` for 2-phase parallel API calls; lazy-init `httpx.AsyncClient` singleton with connection pool reuse; `asyncio.Lock`-guarded rate limiting; layered timeout (10s per step / 45s total)
 - ✅ **Real-time streaming Web UI** — tool call progress visualization + streaming LLM output
 - ✅ **Built with Claude Code** — architecture, debugging, and validation by the author; code generation AI-assisted
 
@@ -138,7 +138,7 @@ PharmMCP/
 ├── chembl_client.py       # ChEMBL API wrapper (async)
 ├── pubmed_client.py       # PubMed API wrapper (async)
 ├── druglikeness.py        # Lipinski's Rule of Five (local computation)
-├── pipeline.py            # Drug screening pipeline (6-step orchestration)
+├── pipeline.py            # Drug screening pipeline (asyncio.gather 2-phase concurrent, 10s step / 45s total timeout)
 ├── test_api.py            # API connectivity tests
 ├── test_tools.py          # Tool function tests
 ├── Dockerfile             # Containerized deployment

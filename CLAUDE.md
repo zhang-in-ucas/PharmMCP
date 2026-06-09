@@ -58,11 +58,11 @@ User → Web UI (Gradio) / Terminal Client
 
 **Server (`server.py`)** — FastMCP application registering 8 tools as async functions via `@mcp.tool()`. Supports `stdio` (default) and `streamable-http` (`--http` flag, port 8000) transports. Tools are the public API; the LLM decides which to call.
 
-**API clients** — Three standalone async clients using `httpx.AsyncClient`. Each has retry logic (2 retries), timeout handling (30s), and no API key requirements. PubChem additionally has rate limiting (≥0.4s between requests to stay under 3 req/s). All return `Optional[dict/list]` — `None` means "not found" or "request failed".
+**API clients** — Three standalone async clients using `httpx.AsyncClient` with lazy-init singleton pattern: each module exports a module-level instance (`pubchem`, `chembl`, `pubmed`) that reuses a single connection pool across all requests, avoiding repeated TCP/TLS handshakes. Each has retry logic (2 retries), timeout handling (30s), and no API key requirements. PubChem additionally has rate limiting with `asyncio.Lock`-guarded scheduling (≥0.4s between requests to stay under 3 req/s). All return `Optional[dict/list]` — `None` means "not found" or "request failed".
 
 **Local computation (`druglikeness.py`)** — Lipinski Rule of Five check with no external dependencies (no rdkit). Pure math: MW ≤ 500, XLogP ≤ 5, HBD ≤ 5, HBA ≤ 10. Returns passes/violations/details. Handles `None` values gracefully (marked as "缺失"). Input comes from `PubChemClient.get_properties()`.
 
-**Pipeline (`pipeline.py`)** — Orchestrates 6 steps sequentially: search → properties → Lipinski → clinical info → activities → similar compounds. Each step has a 10s timeout via `asyncio.wait_for`; total pipeline timeout is 45s. Failed steps are skipped with a note rather than aborting. This is called by the `drug_screen` tool.
+**Pipeline (`pipeline.py`)** — Orchestrates 6 steps using `asyncio.gather` for 2-phase concurrency: Phase 1 runs PubChem search ‖ ChEMBL search in parallel; Phase 2 runs properties ‖ similar ‖ drug_info ‖ activities in parallel. Each step has a 10s timeout via `asyncio.wait_for`; total pipeline has a 45s hard cap via `asyncio.wait_for`. Failed steps are skipped with a note rather than aborting. This is called by the `drug_screen` tool.
 
 **Clients** — Both `client.py` (stdio) and `client_http.py` (HTTP) follow the same pattern: connect to MCP server, fetch tool list, convert MCP tools to OpenAI function-calling format, then enter a multi-round chat loop (max 10 rounds). The `web_ui.py` uses a threading + queue pattern to bridge async MCP calls with Gradio's synchronous streaming interface.
 

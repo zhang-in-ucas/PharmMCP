@@ -20,20 +20,37 @@ EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
 
 class PubMedClient:
-    """PubMed API 异步客户端"""
+    """PubMed API 异步客户端
+
+    httpx.AsyncClient 在首次请求时惰性创建，后续请求复用同一个连接池。
+    使用完毕后应调用 close() 释放连接。
+    """
 
     def __init__(self, timeout: float = 30.0, max_retries: int = 2):
         self.timeout = timeout
         self.max_retries = max_retries
+        self._http_client = None  # httpx.AsyncClient 惰性初始化
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """惰性获取或创建 httpx.AsyncClient，复用连接池"""
+        if self._http_client is None:
+            self._http_client = httpx.AsyncClient(timeout=self.timeout)
+        return self._http_client
+
+    async def close(self):
+        """关闭 httpx 连接池"""
+        if self._http_client is not None:
+            await self._http_client.aclose()
+            self._http_client = None
 
     async def _request(self, url: str, params: dict = None) -> Optional[str]:
         """通用请求方法，返回原始文本"""
+        client = await self._get_client()
         for attempt in range(self.max_retries + 1):
             try:
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    resp = await client.get(url, params=params)
-                    resp.raise_for_status()
-                    return resp.text
+                resp = await client.get(url, params=params)
+                resp.raise_for_status()
+                return resp.text
             except httpx.TimeoutException:
                 if attempt < self.max_retries:
                     print(f"[PubMed] 请求超时，第{attempt + 1}次重试...")
@@ -185,3 +202,7 @@ class PubMedClient:
             })
 
         return results
+
+
+# 模块级单例，跨请求复用 httpx 连接池
+pubmed = PubMedClient()

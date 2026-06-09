@@ -23,7 +23,11 @@ PUBCHEM_BASE = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
 
 
 class PubChemClient:
-    """PubChem API 异步客户端"""
+    """PubChem API 异步客户端
+
+    httpx.AsyncClient 在首次请求时惰性创建，后续请求复用同一个连接池。
+    使用完毕后应调用 close() 释放连接。
+    """
 
     def __init__(self, timeout: float = 30.0, max_retries: int = 2):
         """
@@ -34,15 +38,34 @@ class PubChemClient:
         self.timeout = timeout
         self.max_retries = max_retries
         self._last_request_time = 0.0  # 上次请求时间，用于速率控制
+        self._rate_lock = asyncio.Lock()  # 防止并发请求时的竞态条件
+        self._http_client = None  # httpx.AsyncClient 惰性初始化
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """惰性获取或创建 httpx.AsyncClient，复用连接池"""
+        if self._http_client is None:
+            self._http_client = httpx.AsyncClient(timeout=self.timeout)
+        return self._http_client
+
+    async def close(self):
+        """关闭 httpx 连接池"""
+        if self._http_client is not None:
+            await self._http_client.aclose()
+            self._http_client = None
 
     async def _rate_limit(self):
-        """速率控制：确保请求间隔 ≥ 0.4秒（满足3次/秒限制）"""
-        import time
-        now = time.time()
-        elapsed = now - self._last_request_time
-        if elapsed < 0.4:
-            await asyncio.sleep(0.4 - elapsed)
-        self._last_request_time = time.time()
+        """速率控制：确保请求间隔 ≥ 0.4秒（满足3次/秒限制）
+
+        使用 asyncio.Lock 防止多个协程并发访问 _last_request_time，
+        确保在 asyncio.gather 等并发场景下速率限制仍然有效。
+        """
+        async with self._rate_lock:
+            import time
+            now = time.time()
+            elapsed = now - self._last_request_time
+            if elapsed < 0.4:
+                await asyncio.sleep(0.4 - elapsed)
+            self._last_request_time = time.time()
 
     async def _request(self, url: str) -> Optional[dict]:
         """
@@ -53,13 +76,13 @@ class PubChemClient:
         Returns:
             解析后的JSON字典，失败返回None
         """
+        client = await self._get_client()
         for attempt in range(self.max_retries + 1):
             try:
                 await self._rate_limit()
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    resp = await client.get(url)
-                    resp.raise_for_status()
-                    return resp.json()
+                resp = await client.get(url)
+                resp.raise_for_status()
+                return resp.json()
             except httpx.TimeoutException:
                 if attempt < self.max_retries:
                     print(f"[PubChem] 请求超时，第{attempt + 1}次重试...")
@@ -248,3 +271,7 @@ class PubChemClient:
             图片URL字符串
         """
         return f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cid}/PNG"
+
+
+# 模块级单例，跨请求复用 httpx 连接池
+pubchem = PubChemClient()

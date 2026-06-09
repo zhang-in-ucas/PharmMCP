@@ -13,7 +13,7 @@ PharmMCP - 基于MCP协议的药物分子智能查询与筛选Agent
 7. search_literature - 文献检索（PubMed）
 
 高级工具（1个）：
-8. drug_screen - 多工具串联生成分子简报（Pipeline）
+8. drug_screen - 多工具串联生成分子简报（Pipeline，asyncio.gather 并发）
 
 运行方式：python server.py（stdio模式） / python server.py --http（HTTP模式）
 """
@@ -22,19 +22,14 @@ import asyncio
 from typing import Optional
 
 from fastmcp import FastMCP
-from pubchem_client import PubChemClient
-from pubmed_client import PubMedClient
-from chembl_client import ChEMBLClient
+from pubchem_client import pubchem
+from pubmed_client import pubmed
+from chembl_client import chembl
 from druglikeness import check_lipinski
 from pipeline import drug_screen_pipeline
 
 # 初始化FastMCP Server
 mcp = FastMCP("PharmMCP")
-
-# 初始化API客户端
-pubchem = PubChemClient()
-pubmed = PubMedClient()
-chembl = ChEMBLClient()
 
 
 # ============================================================
@@ -185,7 +180,8 @@ async def filter_by_druglikeness(cid: int) -> Optional[dict]:
 async def drug_screen(molecule_name: str) -> dict:
     """执行完整的药物筛选流水线，一键生成分子简报。
 
-    自动串联6个步骤：分子搜索→物化性质→Lipinski过滤→临床信息→生物活性→相似化合物。
+    使用 asyncio.gather 并发执行独立的API调用（PubChem搜索与ChEMBL搜索并行，
+    物化性质、相似化合物、临床信息、生物活性并行）。
     失败步骤会跳过并标注，不影响整体流程。
     适合快速了解一个分子的全貌。
 
