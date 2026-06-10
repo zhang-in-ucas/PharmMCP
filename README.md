@@ -1,4 +1,4 @@
-# 🧪 PharmMCP — Drug Molecule Intelligence Platform (MCP-Native)
+# 🧪 PharmMCP — 药物分子智能查询与筛选平台（MCP-Native）
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
@@ -6,38 +6,35 @@
 [![MCP](https://img.shields.io/badge/protocol-MCP-black)](https://modelcontextprotocol.io/)
 [![Gradio](https://img.shields.io/badge/UI-Gradio%205.x-orange)](https://gradio.app/)
 
-> An **MCP-native** drug molecule intelligence platform. 8 standardized tools, 2-layer architecture, dual transport modes — built to demonstrate how MCP enables composable, extensible AI agent tool ecosystems.
-
-[中文](#中文) | [English](#english)
+> 基于 MCP 协议的药物分子智能平台。8 个标准化工具，两层架构，双传输模式 — 展示 MCP 如何构建可组合、可扩展的 AI agent 工具生态。
 
 ---
 
-## 🎯 Why This Project Matters
+## 🎯 项目亮点
 
-This is not a "wrapper around a few APIs." It's a **production-style demonstration of MCP engineering best practices**:
+这不是"给几个 API 套层壳"。这是 **MCP 工程最佳实践的完整演示**：
 
-- ✅ **8 standardized MCP tools** covering the full drug discovery chain
-- ✅ **2-layer tool architecture** (Tool → Pipeline) — the same pattern teams use to scale agent capabilities
-- ✅ **Dual transport modes** (stdio for local dev, streamable-http for remote deployment) with transport/business layer decoupling
-- ✅ **Async concurrent architecture** — `asyncio.gather` for 2-phase parallel API calls; lazy-init `httpx.AsyncClient` singleton with connection pool reuse; `asyncio.Lock`-guarded rate limiting; layered timeout (10s per step / 45s total)
-- ✅ **Real-time streaming Web UI** — tool call progress visualization + streaming LLM output
-- ✅ **Built with Claude Code** — architecture, debugging, and validation by the author; code generation AI-assisted
+- ✅ **8 个标准化 MCP 工具**，覆盖药物发现全链路
+- ✅ **两层工具架构**（单步工具 → 编排流水线）— 规模化 agent 能力的标准模式
+- ✅ **双传输模式**（stdio 本地开发 / streamable-http 远程部署），传输层与业务层完全解耦
+- ✅ **异步并发架构** — `asyncio.gather` 两阶段并行 API 调用；惰性初始化 `httpx.AsyncClient` 单例复用连接池；`asyncio.Lock` 保护速率限制；分层超时控制（单步 10s / 总超时 45s）
+- ✅ **实时流式 Web UI** — 工具调用过程可视化 + LLM 流式输出
+- ✅ **AI 协作构建** — 架构设计与调试由作者完成，代码生成由 AI 辅助
 
 ---
 
-## 🏗 Tool Architecture
+## 🏗 工具架构
 
 ```
 ┌──────────────────────────────────────────────────┐
-│              PharmMCP Tool System                 │
+│              PharmMCP 工具体系                     │
 │                                                    │
 │  ┌─────────────┐                                  │
-│  │ Pipeline    │  drug_screen                     │
-│  │ Layer       │  6-step automated workflow        │
-│  │ (多步编排)   │                                  │
+│  │ 编排层       │  drug_screen                     │
+│  │ Pipeline    │  6 步自动化流程                   │
 │  ├─────────────┤                                  │
-│  │  Tool Layer │  search_molecule                 │
-│  │  (单步查询)   │  get_molecule_properties         │
+│  │ 工具层       │  search_molecule                 │
+│  │ Tool        │  get_molecule_properties         │
 │  │             │  get_drug_targets                │
 │  │             │  get_clinical_info               │
 │  │             │  get_similar_molecules           │
@@ -47,122 +44,122 @@ This is not a "wrapper around a few APIs." It's a **production-style demonstrati
 │         │                                          │
 │         ▼                                          │
 │  ┌─────────────────────────────────────────────┐ │
-│  │  Data Sources                                │ │
+│  │  数据源                                       │ │
 │  │  PubChem  │  ChEMBL  │  PubMed               │ │
-│  │  (no key) │ (no key) │ (no key)               │ │
+│  │  (免费)   │  (免费)   │  (免费)                 │ │
 │  └─────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────┘
 ```
 
-### 8 MCP Tools
+### 8 个 MCP 工具
 
-| # | Tool | Type | Data Source | Description |
-|---|------|------|-------------|-------------|
-| 1 | `search_molecule` | Query | PubChem | Search by name or SMILES; returns CID, SMILES, MW, formula |
-| 2 | `get_molecule_properties` | Query | PubChem | Physicochemical properties: MW, LogP, HBD, HBA, TPSA |
-| 3 | `get_drug_targets` | Query | ChEMBL | Target proteins and bioactivity data (IC₅₀, Kᵢ) |
-| 4 | `get_clinical_info` | Query | ChEMBL | Clinical phase, indications, approval year |
-| 5 | `get_similar_molecules` | Query | PubChem | 2D structural similarity search (Tanimoto) |
-| 6 | `filter_by_druglikeness` | Analysis | Local | Lipinski's Rule of Five compliance check |
-| 7 | `search_literature` | Query | PubMed | Literature search (title, author, abstract) |
-| 8 | `drug_screen` | **Pipeline** | Multi | One-click molecular briefing: 6-step automated workflow |
+| # | 工具 | 类型 | 数据源 | 说明 |
+|---|------|------|--------|------|
+| 1 | `search_molecule` | 查询 | PubChem | 按名称或 SMILES 搜索分子，返回 CID、结构、分子式 |
+| 2 | `get_molecule_properties` | 查询 | PubChem | 物化性质：分子量、LogP、氢键供体/受体、TPSA |
+| 3 | `get_drug_targets` | 查询 | ChEMBL | 靶点蛋白与生物活性数据（IC₅₀、Kᵢ） |
+| 4 | `get_clinical_info` | 查询 | ChEMBL | 临床阶段、适应症、批准年份 |
+| 5 | `get_similar_molecules` | 查询 | PubChem | 2D 结构相似性搜索（Tanimoto 系数） |
+| 6 | `filter_by_druglikeness` | 分析 | 本地 | Lipinski 五规则类药性判断 |
+| 7 | `search_literature` | 查询 | PubMed | 文献检索（标题、作者、摘要） |
+| 8 | `drug_screen` | **编排** | 多源 | 一键分子简报：6 步自动化流水线 |
 
-### Dual Transport Modes
+### 双传输模式
 
-| Mode | Protocol | Use Case |
-|------|----------|----------|
-| **stdio** | MCP standard I/O | Local development, Claude Desktop integration |
-| **streamable-http** | HTTP/SSE | Remote deployment, Web UI, multi-client access |
+| 模式 | 协议 | 适用场景 |
+|------|------|----------|
+| **stdio** | MCP 标准 I/O | 本地开发、Claude Desktop 集成 |
+| **streamable-http** | HTTP/SSE | 远程部署、Web UI、多客户端访问 |
 
-Transport layer is fully decoupled from business logic — switch modes with one CLI flag (`--http`).
+传输层与业务逻辑完全解耦，一个 CLI 参数（`--http`）即可切换。
 
 ---
 
-## 🚀 Quick Start
+## 🚀 快速开始
 
-### Prerequisites
+### 环境要求
 - Python 3.10+
-- LLM API Key (OpenAI-compatible endpoint)
+- LLM API Key（兼容 OpenAI 接口）
 
-### Setup
+### 安装
 
 ```bash
 git clone https://github.com/zhang-in-ucas/PharmMCP.git
 cd PharmMCP
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env: LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
+# 编辑 .env：LLM_API_KEY、LLM_BASE_URL、LLM_MODEL
 ```
 
-### Test (no LLM needed)
+### 测试（无需 LLM）
 
 ```bash
-python test_api.py      # API connectivity test
-python test_tools.py    # Tool function tests
+python test_api.py      # API 连通性测试
+python test_tools.py    # 工具函数测试
 ```
 
-### Run
+### 运行
 
 ```bash
-# Mode 1: Terminal chat (stdio)
+# 模式 1：终端对话（stdio）
 python client.py
 
-# Mode 2: Web UI (recommended for demos)
-# Terminal 1:
+# 模式 2：Web UI（推荐用于演示）
+# 终端 1：
 python server.py --http
-# Terminal 2:
+# 终端 2：
 python web_ui.py
-# Open http://127.0.0.1:7860
+# 浏览器打开 http://127.0.0.1:7860
 
-# Mode 3: MCP Inspector (debugging)
+# 模式 3：MCP Inspector（调试）
 npx @modelcontextprotocol/inspector python server.py
 ```
 
-### Web UI Demo Flow
+### Web UI 演示流程
 
-1. Type a drug name: `aspirin`
-2. Watch real-time tool calls: `🔧 search_molecule → ✅ complete → 🔧 get_molecule_properties → ...`
-3. Read the streaming AI-generated molecular briefing
+1. 输入药物名称：`aspirin`
+2. 实时查看工具调用：`🔧 search_molecule → ✅ 完成 → 🔧 get_molecule_properties → ...`
+3. 阅读 AI 流式生成的分子简报
 
 ---
 
-## 📁 Project Structure
+## 📁 项目结构
 
 ```
 PharmMCP/
-├── server.py              # MCP Server (8 tools, FastMCP)
-├── client.py              # stdio mode client
-├── client_http.py         # HTTP mode client
-├── web_ui.py              # Gradio Web UI (streaming output)
-├── pubchem_client.py      # PubChem API wrapper (async)
-├── chembl_client.py       # ChEMBL API wrapper (async)
-├── pubmed_client.py       # PubMed API wrapper (async)
-├── druglikeness.py        # Lipinski's Rule of Five (local computation)
-├── pipeline.py            # Drug screening pipeline (asyncio.gather 2-phase concurrent, 10s step / 45s total timeout)
-├── test_api.py            # API connectivity tests
-├── test_tools.py          # Tool function tests
-├── Dockerfile             # Containerized deployment
+├── server.py              # MCP Server（8 个工具，FastMCP）
+├── client.py              # stdio 模式客户端
+├── client_http.py         # HTTP 模式客户端
+├── web_ui.py              # Gradio Web UI（流式输出）
+├── pubchem_client.py      # PubChem API 客户端（异步，连接池复用）
+├── chembl_client.py       # ChEMBL API 客户端（异步，连接池复用）
+├── pubmed_client.py       # PubMed API 客户端（异步，连接池复用）
+├── druglikeness.py        # Lipinski 五规则（纯本地计算，无需 RDKit）
+├── pipeline.py            # 药物筛选流水线（asyncio.gather 两阶段并发，10s 单步 / 45s 总超时）
+├── test_api.py            # API 连通性测试
+├── test_tools.py          # 工具函数测试
+├── Dockerfile             # 容器化部署
 └── requirements.txt
 ```
 
 ---
 
-## 🔬 Druglikeness: Lipinski's Rule of Five
+## 🔬 类药性：Lipinski 五规则
 
-| Rule | Threshold | Meaning |
-|------|-----------|---------|
-| Molecular Weight (MW) | ≤ 500 Da | Oral absorption limit |
-| LogP | ≤ 5 | Lipophilicity limit |
-| H-Bond Donors (HBD) | ≤ 5 | -OH, -NH count |
-| H-Bond Acceptors (HBA) | ≤ 10 | O, N heteroatom count |
+| 规则 | 阈值 | 含义 |
+|------|------|------|
+| 分子量（MW） | ≤ 500 Da | 口服吸收上限 |
+| LogP（脂水分配系数） | ≤ 5 | 亲脂性上限 |
+| 氢键供体（HBD） | ≤ 5 | -OH、-NH 数量 |
+| 氢键受体（HBA） | ≤ 10 | O、N 杂原子数量 |
 
-**Verdict**: ≤ 1 violation → drug-like ✅ | ≥ 2 violations → poor oral bioavailability ⚠️
+**判定**：违反 ≤ 1 条 → 类药性好 ✅ | 违反 ≥ 2 条 → 口服生物利用度差 ⚠️
 
 ---
 
-## 🔗 Integration Examples
+## 🔗 集成示例
 
-### With Claude Desktop
+### 集成到 Claude Desktop
 
 ```json
 {
@@ -176,7 +173,7 @@ PharmMCP/
 }
 ```
 
-### With LangGraph Agent
+### 集成到 LangGraph Agent
 
 ```python
 from langgraph.prebuilt import create_react_agent
@@ -187,24 +184,24 @@ async with MultiServerMCPClient({"pharmmcp": {...}}) as client:
     agent = create_react_agent(llm, tools)
 ```
 
-### With Any OpenAI-Compatible Client
+### 集成到任意 OpenAI 兼容客户端
 
-The tools are exposed as standard MCP tools — any MCP-compatible client can consume them. See `client.py` / `client_http.py` for reference implementations.
-
----
-
-## 🔗 Related Projects
-
-- [**MediGuard**](https://github.com/zhang-in-ucas/MediGuard) — Multi-Agent medical safety-compliant consultation system with LangGraph + RAG + two-layer safety review
+所有工具作为标准 MCP 工具暴露，任何兼容 MCP 协议的客户端均可调用。参考实现见 `client.py` / `client_http.py`。
 
 ---
 
-## 📄 License
+## 🔗 相关项目
+
+- [**MediGuard**](https://github.com/zhang-in-ucas/MediGuard) — 多 Agent 医疗安全合规咨询系统，基于 LangGraph + RAG + 双层安全审查
+
+---
+
+## 📄 许可证
 
 MIT License.
 
 ---
 
-## ✨ Author
+## ✨ 作者
 
-Built by a pharmacy-background developer demonstrating how domain expertise + modern AI engineering converge. All tool architecture decisions and debugging done by the author; Claude Code assisted with code generation — exemplifying the "AI tool power user" workflow valued in modern AI engineering teams.
+药学背景开发者，展示领域知识 + 现代 AI 工程如何融合。所有工具架构决策和调试由作者完成，代码生成由 Claude Code 辅助 — 体现现代 AI 工程团队看重的"AI 工具高级用户"工作流。
